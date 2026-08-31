@@ -64,7 +64,7 @@ async function request<T>(
     timestamp + credentials.apiKey + RECV_WINDOW + (method === "GET" ? query : body),
   );
 
-  const response = await fetch(`${bybitBase()}${path}${query ? `?${query}` : ""}`, {
+  const response = await fetch(`${HOSTS[credentials.mode]}${path}${query ? `?${query}` : ""}`, {
     method,
     headers: {
       "X-BAPI-API-KEY": credentials.apiKey,
