@@ -78,24 +78,46 @@ export async function fetchSpotFeeRates(credentials: BybitCredentials) {
   return result.list ?? [];
 }
 
+export type ConvertAccountType = "eb_convert_uta" | "eb_convert_funding" | "eb_convert_spot";
+
+type ConvertQuote = {
+  quoteTxId: string;
+  fromCoin: string;
+  toCoin: string;
+  fromAmount: string;
+  toAmount: string;
+  exchangeRate?: string;
+  expiredTime?: string;
+};
+
 export async function fetchConvertQuote(
   credentials: BybitCredentials,
   input: { fromCoin: string; toCoin: string; amount: string },
 ) {
-  const result = await request<{
-    quoteTxId: string;
-    fromCoin: string;
-    toCoin: string;
-    fromAmount: string;
-    toAmount: string;
-    exchangeRate?: string;
-    expiredTime?: string;
-  }>(credentials, "POST", "/v5/asset/exchange/quote-apply", {
-    accountType: "eb_convert_uta",
-    fromCoin: input.fromCoin,
-    toCoin: input.toCoin,
-    requestCoin: input.fromCoin,
-    requestAmount: input.amount,
-  });
-  return result;
+  // Convert quotes are wallet-scoped: Bybit rejects the request with
+  // "Your Available Balance is insufficient or your wallet not exist" when the
+  // coin lives in a different account. Try the common wallets in order.
+  const accountTypes: ConvertAccountType[] = ["eb_convert_uta", "eb_convert_funding", "eb_convert_spot"];
+  let lastError: unknown;
+
+  for (const accountType of accountTypes) {
+    try {
+      return await request<ConvertQuote>(credentials, "POST", "/v5/asset/exchange/quote-apply", {
+        accountType,
+        fromCoin: input.fromCoin,
+        toCoin: input.toCoin,
+        requestCoin: input.fromCoin,
+        requestAmount: input.amount,
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? new Error(
+        `${lastError.message} — checked UTA, Funding and Spot wallets. Make sure ${input.fromCoin} is available in one of them and the amount meets Bybit's Convert minimum.`,
+      )
+    : new Error("Could not fetch a Bybit Convert quote.");
 }
+
