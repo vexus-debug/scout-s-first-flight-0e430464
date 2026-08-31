@@ -6,29 +6,33 @@
  */
 
 // Bybit demo trading is a separate host with its own API keys.
-// Set BYBIT_ENV=demo (or testnet) to point signed requests there.
+// The mode is chosen per request from the UI; BYBIT_ENV sets the default.
 const HOSTS = {
   live: "https://api.bybit.com",
   demo: "https://api-demo.bybit.com",
   testnet: "https://api-testnet.bybit.com",
 } as const;
 
-function bybitBase() {
+export type BybitMode = keyof typeof HOSTS;
+
+export function defaultBybitMode(): BybitMode {
   const env = (process.env["BYBIT_ENV"] ?? "live").toLowerCase();
-  return HOSTS[env as keyof typeof HOSTS] ?? HOSTS.live;
+  return (env in HOSTS ? env : "live") as BybitMode;
 }
 
 const RECV_WINDOW = "5000";
 
+export type BybitCredentials = { apiKey: string; apiSecret: string; mode: BybitMode };
 
-export type BybitCredentials = { apiKey: string; apiSecret: string };
-
-export function readBybitCredentials(): BybitCredentials | null {
-  const apiKey = process.env["BYBIT_API_KEY"];
-  const apiSecret = process.env["BYBIT_API_SECRET"];
+export function readBybitCredentials(mode: BybitMode = defaultBybitMode()): BybitCredentials | null {
+  // Demo/testnet keys are separate on Bybit; fall back to the live pair only for `live`.
+  const prefix = mode === "live" ? "BYBIT" : mode === "demo" ? "BYBIT_DEMO" : "BYBIT_TESTNET";
+  const apiKey = process.env[`${prefix}_API_KEY`];
+  const apiSecret = process.env[`${prefix}_API_SECRET`];
   if (!apiKey || !apiSecret) return null;
-  return { apiKey, apiSecret };
+  return { apiKey, apiSecret, mode };
 }
+
 
 async function sign(secret: string, payload: string) {
   const key = await crypto.subtle.importKey(
