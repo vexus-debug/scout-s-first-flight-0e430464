@@ -5,8 +5,21 @@
  * leave this module: no key material is returned to callers or the browser.
  */
 
-const BYBIT_BASE = "https://api.bybit.com";
+// Bybit demo trading is a separate host with its own API keys.
+// Set BYBIT_ENV=demo (or testnet) to point signed requests there.
+const HOSTS = {
+  live: "https://api.bybit.com",
+  demo: "https://api-demo.bybit.com",
+  testnet: "https://api-testnet.bybit.com",
+} as const;
+
+function bybitBase() {
+  const env = (process.env["BYBIT_ENV"] ?? "live").toLowerCase();
+  return HOSTS[env as keyof typeof HOSTS] ?? HOSTS.live;
+}
+
 const RECV_WINDOW = "5000";
+
 
 export type BybitCredentials = { apiKey: string; apiSecret: string };
 
@@ -47,7 +60,7 @@ async function request<T>(
     timestamp + credentials.apiKey + RECV_WINDOW + (method === "GET" ? query : body),
   );
 
-  const response = await fetch(`${BYBIT_BASE}${path}${query ? `?${query}` : ""}`, {
+  const response = await fetch(`${bybitBase()}${path}${query ? `?${query}` : ""}`, {
     method,
     headers: {
       "X-BAPI-API-KEY": credentials.apiKey,
