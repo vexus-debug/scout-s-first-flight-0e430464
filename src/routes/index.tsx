@@ -637,6 +637,30 @@ function Scanner() {
           <aside className="panel rounded-lg p-5">
             <div className="mb-6 flex items-center justify-between"><div><div className="eyebrow">Scanner controls</div><h2 className="mt-1 text-lg font-semibold text-foreground">Tune the signal</h2></div><SlidersHorizontal className="h-5 w-5 text-muted-foreground" /></div>
             <div className="space-y-5">
+              <div className="block">
+                <span className="mb-2 flex items-center justify-between text-xs font-medium text-foreground">
+                  Bybit account
+                  <span className={`font-mono ${accountMode === "demo" ? "text-warning" : "text-primary"}`}>{accountMode === "demo" ? "DEMO" : "LIVE"}</span>
+                </span>
+                <div className="flex gap-1 rounded-md bg-surface-subtle p-1">
+                  {(["live", "demo"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => changeAccountMode(mode)}
+                      className={`flex-1 rounded px-3 py-1.5 text-xs font-medium capitalize transition-colors ${accountMode === mode ? "bg-accent text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {mode === "live" ? "Live account" : "Demo trading"}
+                    </button>
+                  ))}
+                </div>
+                <span className="mt-1.5 block text-[11px] text-muted-foreground">
+                  {accountMode === "demo"
+                    ? "Signed calls hit api-demo.bybit.com with your demo keys. Convert quotes stay modelled."
+                    : "Signed calls hit your real Bybit account (read-only: fee tier and Convert quotes)."}
+                </span>
+              </div>
+
               <label className="block"><span className="mb-2 flex items-center justify-between text-xs font-medium text-foreground">Route universe <span className="font-mono text-muted-foreground">{copy.tag}</span></span><select className="select-control h-10 w-full rounded-md px-3 text-sm" value={universe} onChange={(event) => setUniverse(event.target.value as Universe)}><option value="crypto">Crypto only</option><option value="crypto-fiat">Crypto + fiat</option><option value="crypto-stocks">Crypto + stocks</option><option value="xstocks">xStocks only (USDT hub)</option><option value="cross">Cross-asset (crypto + stocks + fiat)</option></select></label>
               <label className="block"><span className="mb-2 flex items-center justify-between text-xs font-medium text-foreground">Minimum net profit <CircleHelp className="h-3.5 w-3.5 text-muted-foreground" /></span><div className="relative"><input className="input-control mono h-10 w-full rounded-md px-3 pr-10 text-sm" type="number" min="0" step="0.05" value={minProfit} onChange={(event) => setMinProfit(event.target.value)} /><span className="absolute right-3 top-2.5 font-mono text-xs text-muted-foreground">%</span></div></label>
               <label className="block"><span className="mb-2 flex items-center justify-between text-xs font-medium text-foreground">Fee per leg <span className="font-mono text-muted-foreground">{(fee * 100).toFixed(3)}%</span></span><input className="w-full accent-primary" type="range" min="0" max="0.003" step="0.0001" value={fee} onChange={(event) => { setFee(Number(event.target.value)); setFeeRates({}); setFeeSource({ live: false, note: "Manual fee override" }); }} /><span className={`mt-1.5 block text-[11px] ${feeSource.live ? "text-primary" : "text-muted-foreground"}`}>{feeSource.note}</span></label>
