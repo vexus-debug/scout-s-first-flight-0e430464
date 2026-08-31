@@ -526,7 +526,7 @@ function Scanner() {
     try {
       const ticker = source.tickers.find((item) => item.symbol === "BTCUSDT");
       const mid = ticker ? (parseNumber(ticker.bid1Price) + parseNumber(ticker.ask1Price)) / 2 : 0;
-      const quote = await getBybitConvertQuote({ data: { fromCoin: "USDT", toCoin: "BTC", amount: 100 } });
+      const quote = await getBybitConvertQuote({ data: { fromCoin: "USDT", toCoin: "BTC", amount: 100, mode: accountMode } });
       if (!quote.ok || mid <= 0 || quote.rate <= 0) {
         setConvertSource({ live: false, note: quote.ok ? "No spot reference for calibration" : quote.reason });
         return;
@@ -539,7 +539,8 @@ function Scanner() {
     } finally {
       setConvertBusy(false);
     }
-  }, []);
+  }, [accountMode]);
+
 
 
   useEffect(() => {
