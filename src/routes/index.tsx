@@ -436,6 +436,17 @@ function Scanner() {
 
   const scanningRef = useRef(false);
 
+  // Which Bybit account the signed calls hit: real money vs demo trading.
+  const [accountMode, setAccountMode] = useState<"live" | "demo">("live");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("loopline.bybitMode");
+    if (saved === "demo" || saved === "live") setAccountMode(saved);
+  }, []);
+  const changeAccountMode = useCallback((mode: "live" | "demo") => {
+    setAccountMode(mode);
+    window.localStorage.setItem("loopline.bybitMode", mode);
+  }, []);
+
   // Live Bybit account fee tier (per symbol) — falls back to the fee slider when unavailable.
   const [feeRates, setFeeRates] = useState<Record<string, number>>({});
   const [feeSource, setFeeSource] = useState<{ live: boolean; note: string }>({ live: false, note: "Modelled fee (slider)" });
@@ -445,11 +456,11 @@ function Scanner() {
 
   const loadFees = useCallback(async () => {
     try {
-      const result = await getBybitFeeRates();
+      const result = await getBybitFeeRates({ data: { mode: accountMode } });
       if (result.configured) {
         setFeeRates(result.rates);
         setFee(result.defaultTaker);
-        setFeeSource({ live: true, note: `Live account fee tier · ${Object.keys(result.rates).length} symbols` });
+        setFeeSource({ live: true, note: `${accountMode === "demo" ? "Demo" : "Live"} account fee tier · ${Object.keys(result.rates).length} symbols` });
       } else {
         setFeeRates({});
         setFeeSource({ live: false, note: result.reason });
@@ -458,7 +469,8 @@ function Scanner() {
       setFeeRates({});
       setFeeSource({ live: false, note: "Fee tier unavailable — using the slider value" });
     }
-  }, []);
+  }, [accountMode]);
+
 
   const scan = useCallback(async () => {
     setLoading(true);
