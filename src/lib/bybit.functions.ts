@@ -72,21 +72,25 @@ export const getBybitFeeRates = createServerFn({ method: "GET" })
 
 
 export const getBybitConvertQuote = createServerFn({ method: "POST" })
-  .inputValidator((input: { fromCoin: string; toCoin: string; amount: number }) => {
+  .inputValidator((input: { fromCoin: string; toCoin: string; amount: number; mode?: BybitModeInput }) => {
     const coin = /^[A-Z0-9]{2,16}$/;
     const fromCoin = String(input.fromCoin ?? "").toUpperCase();
     const toCoin = String(input.toCoin ?? "").toUpperCase();
     if (!coin.test(fromCoin) || !coin.test(toCoin) || fromCoin === toCoin) throw new Error("Invalid coin pair");
     const amount = Number(input.amount);
     if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) throw new Error("Invalid amount");
-    return { fromCoin, toCoin, amount };
+    return { fromCoin, toCoin, amount, mode: parseMode(input.mode) };
   })
   .handler(async ({ data }): Promise<ConvertQuoteResult> => {
     const { readBybitCredentials, fetchConvertQuote } = await import("./bybit.server");
-    const credentials = readBybitCredentials();
+    const credentials = readBybitCredentials(data.mode);
     if (!credentials) {
-      return { ok: false, reason: "Bybit API credentials are not configured on the server." };
+      return { ok: false, reason: missingCredentials(data.mode) };
     }
+    if (data.mode !== "live") {
+      return { ok: false, reason: `Bybit Convert quotes are not available on ${data.mode} — using the modelled spread.` };
+    }
+
 
     try {
       const quote = await fetchConvertQuote(credentials, {
